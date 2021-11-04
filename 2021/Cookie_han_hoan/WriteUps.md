@@ -298,9 +298,13 @@ Lúc làm bài này thì mình chưa làm scan me if you can, nhưng cái từ "
 >rDNS record for 18.139.222.220: ec2-18-139-222-220.ap-southeast-1.compute.amazonaws.com
 >Not shown: 996 closed ports
 >PORT     STATE SERVICE
+>
 >80/tcp   open  http
+>
 >7000/tcp open  afs3-fileserver
+>
 >9002/tcp open  dynamid
+>
 >9003/tcp open  unknown
 
 Vì port 9002 làm bài Post office man rồi nên thử 9003. Hóa ra nó là giải đố vui vẻ thôi, trả lời đúng 6 câu trong kịp thời gian sẽ có flag
@@ -351,6 +355,7 @@ Rephrase lại đề: check xem ở domain này có cổng nào thú vị từ 8
 > PORT     STATE  SERVICE
 >
 > 9003/tcp open   unknown
+>
 > 9004/tcp open   unknown
 
 Hmm, netcat cả 2 không được nên curl thử
@@ -453,7 +458,7 @@ Bài này thì tính nghiệm phương trình bậc 2, và đảm bảo là nghi
 >
 > `programming.letspentest.org 8333`
 
-Google công thức thì nó là $\lceil log_3{n} \rceil$
+Google công thức thì nó là ![](https://latex.codecogs.com/svg.latex?\lceil log_3{n} \rceil)
 
 `Flag{n0_pr0b_w1th_cub3_r00t_RIGHT?}`
 
@@ -463,6 +468,30 @@ Google công thức thì nó là $\lceil log_3{n} \rceil$
 
 > Thấy hộp bánh quy của chú Hazy để hớ hênh trên bàn. Với bản tính nghịch ngợm, Mèo Yang Hồ nhanh tay thêm chút gia vị để biến cuộc đời trở nên hài hước và hân hoan hơn.
 
+Trang đăng nhập là 1 login form vui vẻ, inspect thấy cũng không có gì bất thường
+
+```html
+<form action="/check.php" id="login" method="POST">
+    <p> Username:
+        <input type="text" name="username" /><br>
+    <p> Password:
+        <input type="password" name="password" /><br>
+        <input class="button" type="submit" value="Submit">
+</form>
+```
+
+Nhập thử `admin|admin` xem sao
+
+![](han_hoan_1.png)
+
+Hmmp, sau đó thì cũng từ gợi ý đề bài mà mình bật lên coi thử có cookie gì lạ không
+
+![](han_hoan_2.png)
+
+( ͡° ͜ʖ ͡°) Thay thử value thành `CookieHanHoan` và cái kết
+
+`Flag{Cookies_Yummy_Cookies_Yammy!}`
+
 ### Header 401
 
 > Để nhiều loại Trình duyệt và Web Server có thể nói chuyện và hiểu được nhau thì họ phải sử dụng chung một giao thức có tên gọi là HTTP Protocol. Khi người dùng bắt đầu truy cập Web, trình duyệt sẽ chuyển những hành động của họ thành yêu cầu (Request) tới Web Server. Còn Web Server sẽ trả lời (Response) xem có thể đáp ứng hay từ chối cung cấp thông tin cho trình duyệt.
@@ -471,24 +500,165 @@ Google công thức thì nó là $\lceil log_3{n} \rceil$
 >
 > Hãy đoán xem trong thử thách này có những Header thú vị nào nha
 
+Đập vào mắt mình là dòng chữ `Hello GET Request. Nice to meet you <3` nên mình thử ngay với POST thì nó sẽ ra cái gì
+
+`Missing Basic Authorization Header.`
+
+Hmm, sau đó để ý lại thì lúc GET có 1 cái comment nho nhỏ ở document
+
+```html
+<!--
+	Basic Authentication Credential: gaconlonton/cookiehanhoan
+-->
+```
+
+Basic authorization header là 1 loại header để chứa cái token sau khi người dùng đã đăng nhập và cho server định danh được người dùng khi truy cập những endpoint yêu cầu phải có định danh.
+
+Cú pháp của header này sẽ là
+
+`Authorization: Basic <base64(username:password)>`
+
+Với thông tin đăng nhập ở trên thì mình có base64 là `Z2Fjb25sb250b246Y29va2llaGFuaG9hbg==`, sau đó thêm header này vào và gửi lại request.
+
+`Congras!!! Here's your flag: Flag{m4g1c@l_h34d3r_xD}`
+
+Yay!!!
+
 ### JS B\*\*p B\*\*p
 
 > Sau nhiều đêm suy nghĩ về việc làm thế nào để bảo vệ mã nguồn. Cố gắng thoát khỏi ánh mắt soi mói của Mèo Yang Hồ.
 >
 > Gà chẹp miệng rồi nói: "Đã tới lúc phải cho nó phải thốt lên rằng! WTF!!!"
 
+Câu này lại tiếp tục là 1 form đăng nhập khác, nhưng có tới 3 trường. Nhập đại thử thì trang hiện alert `Wrong Credentials!`, nên mình mò xem chỗ nào gọi hàm alert đó.
+
+```html
+<script src='./static/js/1.js'></script>
+<script src='./static/js/2.js'></script>
+<script src='./static/js/3.js'></script>
+<script src='./static/js/4.js'></script>
+<script>
+  const form = document.getElementById('login'); 
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    let username = form.elements['username'].value;
+    let password = form.elements['password'].value;
+    let role     = form.elements['role'].value;
+
+    if (verifyUsername(username) && verifyPassword(password) && verifyRole(role)) {
+      event.target.submit();
+    } else {
+      alert('Wrong Credentials!')
+      location.reload(true)
+    }
+  })
+</script>
+```
+
+Oke, thế thì làm cho 3 cái hàm `verifyUsername`, `verifyPassword`, `verifyRole` trả về `true` là xong. Nhưng biết nó chạy thế nào mà trả về? Lúc đó mình nhìn lên thì thấy import tới tận 4 file js nên có thể nó sẽ nằm đâu đó trong này.
+
+Thì ra cả 4 file đó đều viết bằng JS F\*ck :))) thế thì lên mấy [online tool](https://enkhee-osiris.github.io/Decoder-JSFuck/) như cái [này](https://youtu.be/Gs069dndIYk?t=110) để dịch thôi :v
+
+```js
+// 1.js
+function verifyUsername(username) {     if (username != "cookiehanhoan") {       return false     }     return true   }
+
+// 2.js
+function reverseString(str) {   if (str === "")    { return "" }   else {   return reverseString(str.substr(1)) + str.charAt(0)}   }
+
+// 3.js
+function verifyPassword(password) {     if (reverseString(password) != "dr0Wss@p3rucreSr3pus") {       return false     }     return true   }
+
+// 4.js
+function verifyRole(role) {
+    if (role.charCodeAt(0) != 64) {
+        return false;
+    }
+    if ((role.charCodeAt(1) + role.charCodeAt(2) != 209) && (role.charCodeAt(2) - role.charCodeAt(1) != 9)) {
+        return false       
+    }       
+    if ((role.charCodeAt(3).toString() + role.charCodeAt(4).toString() != "10578") && (role.charCodeAt(3) - role.charCodeAt(4) != 27)) {         
+        return false       
+    }     
+    return true   
+}
+```
+
+User name thì dễ thấy do so sánh thẳng string, password thì đọc ngược lại cái chuỗi `dr0Wss@p3rucreSr3pus` thành `sup3rSercur3p@ssW0rd`.
+
+Role thì hơi khó chịu hơn, tính tay ASCII code của từng kí tự thì sẽ ra '@dmiN'
+
+Nhập hết thì sẽ nhận được flag `Flag{JAV-ascript_F*ck}`
+
 ### Impossible
 
 > Học lỏm được công thức chế tạo lá chắn tàng hình của Hazy. Gà nhanh chóng đem về xây dựng hệ thống phòng thủ của riêng mình. Liệu nó có làm khó được Mèo Yang Hồ không?
+
+Yet-another-login-form! Lần này thì chỉ có mỗi password thôi, và cũng có cả script để xử lý trong document luôn, quá khỏe :v
+
+```js
+function checkPass()
+{
+	var password = document.getElementById('password').value;
+	if (btoa(password.replace("cookiehanhoan", "")) == "Y29va2llaGFuaG9hbg==") {
+		window.setTimeout(function() {
+			window.location.assign('check.php?password=' + password);
+		}, 500);
+	}
+}
+```
+
+Hàm `btoa` chính là encode base64, và `Y29va2llaGFuaG9hbg==` decode sẽ ra `cookiehanhoan`, nghĩa là hàm `checkPass()` này lọc các xâu con `cookiehanhoan` trong mật khẩu mình nhập, sau đó encode base64 và check với giá trị kia. Nghĩa là thứ mình nhập vào, bằng 1 cách nào đó, phải là `cookiehanhoan` sau khi đã lọc.
+
+Nghe impossible thật nhưng có 1 cái cần để ý là hàm này chỉ lọc hết mọi xâu con đó **1 lần**, nghĩa là nếu mình nhập 1 thứ đại loại như này `cookiecookiehanhoanhanhoan` thì lọc hộ luôn :)) Khi lọc xong xâu con ở giữa thì phần đầu với cuối ghép lại vẫn ra `cookiehanhoan`, ezpz.
+
+Xong tới đó sẽ có được flag `Flag{Javascript_is_not_safe???}`
 
 ### Infinite Loop
 
 > Cuộc đời luôn là vậy. Một giây trước tưởng đã cùng đường, một giây sau có lại đầy hy vọng. Các chiến binh đã có công cụ mạnh mẽ trong tay, hãy dùng nó để can thiệp dòng chảy.
 
+Tiếp 1 cái login form khác =))) Lần này không có js script gì để xử lý input nên mình cũng nhập đại, sau đó thì thấy trang đơ và hiện cái lỗi như thế này.
+
+![](infinite_1.png)
+
+Thú vị, trang này làm gì có cookie, bật network ra thì thấy spam nhiều request như thế này.
+
+![](infinite_2.png)
+
+Mình chả hiểu chuyện gì đang xảy ra cả nên google kiếm xem có bài nào tương tự không, thì đa phần nó là brute theo cái id và flag sẽ nằm ở 1 trong số đó. Nhưng chắc là vì devtool của Chrome không nhận content luôn vì nó là redirect, nên mình dùng `requests` của python đọc xem có gì không.
+
+![](infinite_3.png)
+
+Hmm có gì thật, hên mà id đây cũng chỉ 0 tới 10 nên thử 1 tí là mình đã thấy kết quả.
+
+```python
+for i in range(11):
+	r = requests.get('http://chal6.web.letspentest.org/check.php?id=' + str(i), allow_redirects=False)
+	print(i, r.text)
+```
+
+![](infinite_4.png)
+
+`Flag{Y0u_c4ptur3_m3_xD!!!}`
+
 ### I am not a robot
 
 > Nếu là người thì cho xem tai, còn nếu là robot thì đứng ở ngoài. Bạn đã bị chặn
 
+=))) Bài này thì quá quen rồi, thường các search engine sẽ có những con bot để "crawl" thông tin của các website và đánh dấu tụi nó lại để tiện cho người dùng tìm kiếm. Tuy nhiên vì 1 số lý do mà chúng ta không muốn con bot đi vào những endpoint nào đó, thì việc config đó sẽ nằm trong file `robots.txt`. Truy cập `/robots.txt`
+
+![](robot.png)
+
+Thế là bạn biết mình làm gì tiếp rồi đấy ( ͡° ͜ʖ ͡°)
+
+`Flag{N0_B0T_@ll0w}`
+
 ### Sause
 
 > Trình duyệt đang rất vất vả để chuyển đổi các đoạn mã thành hình ảnh và màu sắc. Hãy trải nghiệm góc nhìn của trình duyệt nhé!
+
+Bài này thì flag nằm ngay trong document luôn =))) Bật devtools lên là thầy.
+
+`Flag{Web_Sause_Delicious}`
