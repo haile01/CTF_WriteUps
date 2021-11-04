@@ -93,6 +93,92 @@ Decode hex là xong
 
 > Ôi không, Hazy lỡ xoá đi một mảnh ghép trong quá trình mã hoá AES mất rồi :)
 
+Bài này cho mình 2 file chứa binary của flag sau khi mã hóa và file python để mã hóa
+
+```python
+import base64
+from Crypto.Cipher import AES
+
+#flag = ###FINDME###
+algorithm = AES.MODE_CBC
+key = 'supersecretkey!?'
+iv_part1 = "0xcafedeadbeef"
+iv_part2 = ###FINDME###""
+iv = iv_part1 + iv_part2
+#assert(len(flag)) == 38
+
+def encrypt(payload, key, iv):
+    return AES.new(key, algorithm, iv).encrypt(r_pad(payload))
+
+def r_pad(payload, block_size=16):
+    length = block_size - (len(payload) % block_size)
+    return payload + chr(length) * length
+
+with open('cipher.txt', 'wb') as f:
+    f.write(encrypt(flag, key, iv))
+```
+
+Với mã hóa AES thì độ dài key bằng độ dài iv, vậy nên iv_part2 chỉ vỏn vẹn 2 kí tự. Thế thì cứ brute thôi :D
+
+> Và đây là lúc bruh moment bắt đầu
+
+Dựa vào đề bài thì mình chỉ có ràng buộc duy nhất là `(16 - (38 % 16)) = 10` ký tự cuối của cái được decrypt phải có mã ASCII = 10, tức là kí tự xuống dòng. Nhưng đời không như mơ, có rất, rất nhiều flag được decrypt thỏa mãn ràng buộc đó. 
+
+Nhưng nhìn vào cấu trúc của những flag được tạo ra thì đa phần kí tự đang là hex, vậy nên mình thêm ràng buộc đó và số lượng giảm xuống còn 240. Nhưng thế này vẫn bruh quá. Sau đó mình thấy thêm nữa là iv_part1 chỉ toàn chữ cái in thường hoặc số nên mình giảm các kí tự được brute. 75 =))) Vẫn nhiều quá.
+
+Tới lúc này thì mình để ý là kí tự đầu của part_2 chỉ có thể là p, q, x, y hoặc z, trong khi part_1 toàn là hex rồi thì còn cái nào hợp để bỏ vào đâu :/ *Vô lý*
+
+Trong lúc chán trường muốn bỏ cuộc, mình nghĩ có khi nào part_2 nó là `x0` hay không? Để nó đối xứng với phần đầu part_1? Tới nước này thì phải mò chứ sao giờ.
+
+> Ai ngờ nó lại đúng :D
+
+```python
+import base64
+from Crypto.Cipher import AES
+import string
+
+#flag = ###FINDME###
+algorithm = AES.MODE_CBC
+key = 'supersecretkey!?'
+iv_part1 = "0xcafedeadbeef"
+# iv_part2 = ###FINDME###""
+# iv = iv_part1 + iv_part2
+#assert(len(flag)) == 38
+
+def decrypt(cipher, key, iv):
+    return AES.new(key, algorithm, iv).decrypt(cipher)
+
+cipher = open('cipher.txt', 'rb').read()
+print(len(cipher))
+
+def check_msg(msg):
+    for i in range(1, 11):
+        if msg[-i] != '\n':
+            return False
+    if msg[:5] != 'Flag{' or msg[37] != '}':
+        return False
+    for i in range(5, 37):
+        if msg[i] not in '0123456789abcdef':
+            return False
+    return True
+
+cnt = 0
+s = string.ascii_lowercase + string.digits
+
+for i in s:
+    for j in s:
+        iv = iv_part1 + i + j
+        msg = decrypt(cipher, key, iv)
+        if check_msg(msg):
+            print(i, j, msg.strip())
+            cnt += 1
+
+print(cnt)
+
+```
+
+`Flag{f4edced3a1c3e72be1257f232a7a78b6}`
+
 ## Web Exploitation
 
 ### XSS
