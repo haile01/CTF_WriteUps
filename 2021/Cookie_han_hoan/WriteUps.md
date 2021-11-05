@@ -607,24 +607,30 @@ Hmm, netcat cả 2 không được nên curl thử
 > \* Connected to 18.140.65.99 (18.140.65.99) port 9004 (#0)
 >
 > \> GET / HTTP/1.1
+> 
 > \> Host: 18.140.65.99:9004
+> 
 > \> User-Agent: curl/7.68.0
+> 
 > \> Accept: */*
 >
 > \* Mark bundle as not supporting multiuse
+> 
 > < HTTP/1.1 400 Bad Request
+> 
 > < Server: Flag{Every-Header-Have-It-Own-Meaning}Date: Wed, 03 Nov 2021 16:03:39 GMT
+> 
 > < Content-Type: text/html
+> 
 > < Content-Length: 255
+> 
 > < Connection: close
+> 
 > <
 >
 > <html>
->
 > <head><title>400 The plain HTTP request was sent to HTTPS port</title></head>
->
 > <body>
->
 > <center><h1>400 Bad Request</h1></center>
 > <center>The plain HTTP request was sent to HTTPS port</center>
 > <hr><center>nginx/1.20.0</center>
@@ -800,13 +806,29 @@ Thì ra cả 4 file đó đều viết bằng JS F\*ck :))) thế thì lên mấ
 
 ```js
 // 1.js
-function verifyUsername(username) {     if (username != "cookiehanhoan") {       return false     }     return true   }
+function verifyUsername(username) {
+    if (username != "cookiehanhoan") {
+        return false
+    }
+    return true
+}
 
 // 2.js
-function reverseString(str) {   if (str === "")    { return "" }   else {   return reverseString(str.substr(1)) + str.charAt(0)}   }
+function reverseString(str) {
+    if (str === "")
+        { return "" }
+    else {
+        return reverseString(str.substr(1)) + str.charAt(0)
+    }
+}
 
 // 3.js
-function verifyPassword(password) {     if (reverseString(password) != "dr0Wss@p3rucreSr3pus") {       return false     }     return true   }
+function verifyPassword(password) {
+	if (reverseString(password) != "dr0Wss@p3rucreSr3pus") {
+		return false
+	}
+	return true
+}
 
 // 4.js
 function verifyRole(role) {
